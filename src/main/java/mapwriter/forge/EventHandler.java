@@ -1,21 +1,31 @@
 package mapwriter.forge;
 
+import java.util.ArrayList;
+
+import org.apache.commons.lang3.reflect.FieldUtils;
+
+import com.mojang.realmsclient.RealmsMainScreen;
+import com.mojang.realmsclient.dto.RealmsServer;
+import com.mojang.realmsclient.gui.screens.RealmsConfigureWorldScreen;
+import com.mojang.realmsclient.gui.screens.RealmsLongRunningMcoTaskScreen;
+
 import mapwriter.Mw;
 import mapwriter.config.Config;
 import mapwriter.overlay.OverlaySlime;
 import mapwriter.util.Logging;
+import mapwriter.util.Utils;
+import net.minecraft.client.gui.GuiGameOver;
 import net.minecraft.client.gui.GuiMainMenu;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.util.ChatComponentText;
-import net.minecraft.util.ChatComponentTranslation;
+import net.minecraft.client.gui.GuiScreenRealmsProxy;
+import net.minecraft.realms.RealmsScreen;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.client.event.TextureStitchEvent;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.world.ChunkEvent;
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 public class EventHandler
@@ -31,7 +41,7 @@ public class EventHandler
 	@SubscribeEvent
 	public void eventChunkLoad(ChunkEvent.Load event)
 	{
-		if (event.world.isRemote)
+		if (event.getWorld().isRemote)
 		{
 			this.mw.onChunkLoad(event.getChunk());
 		}
@@ -40,7 +50,7 @@ public class EventHandler
 	@SubscribeEvent
 	public void eventChunkUnload(ChunkEvent.Unload event)
 	{
-		if (event.world.isRemote)
+		if (event.getWorld().isRemote)
 		{
 			this.mw.onChunkUnload(event.getChunk());
 		}
@@ -55,20 +65,29 @@ public class EventHandler
 		}
 		try
 		{ // I don't want to crash the game when we derp up in here
-			if (event.message instanceof ChatComponentTranslation)
+			if (event.getMessage() instanceof TextComponentTranslation)
 			{
-				ChatComponentTranslation component = (ChatComponentTranslation) event.message;
+				TextComponentTranslation component = (TextComponentTranslation) event.getMessage();
 				if (component.getKey().equals("commands.seed.success"))
 				{
-					OverlaySlime.setSeed((Long) component.getFormatArgs()[0]);
+					Long lSeed = (long) 0;
+					if (component.getFormatArgs()[0] instanceof Long)
+					{
+						lSeed = (Long) component.getFormatArgs()[0];
+					}
+					else
+					{
+						lSeed = Long.parseLong((String) component.getFormatArgs()[0]);
+					}
+					OverlaySlime.setSeed(lSeed);
 					event.setCanceled(true); // Don't let the player see this
 					// seed message, They didn't do
 					// /seed, we did
 				}
 			}
-			else if (event.message instanceof ChatComponentText)
+			else if (event.getMessage() instanceof TextComponentString)
 			{
-				ChatComponentText component = (ChatComponentText) event.message;
+				TextComponentString component = (TextComponentString) event.getMessage();
 				String msg = component.getUnformattedText();
 				if (msg.startsWith("Seed: "))
 				{ // Because bukkit...
@@ -81,26 +100,17 @@ public class EventHandler
 		}
 		catch (Exception e)
 		{
-			// e.printStackTrace();
-		}
-	}
-
-	@SubscribeEvent(priority = EventPriority.LOWEST)
-	public void eventPlayerDeath(LivingDeathEvent event)
-	{
-		if (!event.isCanceled())
-		{
-			if (event.entityLiving.getEntityId() == net.minecraft.client.Minecraft.getMinecraft().thePlayer.getEntityId())
+			Logging.logError("Something went wrong getting the seed. %s", new Object[]
 			{
-				this.mw.onPlayerDeath((EntityPlayerMP) event.entityLiving);
-			}
+					e.toString()
+			});
 		}
 	}
 
 	@SubscribeEvent
 	public void renderMap(RenderGameOverlayEvent.Post event)
 	{
-		if (event.type == RenderGameOverlayEvent.ElementType.ALL)
+		if (event.getType() == RenderGameOverlayEvent.ElementType.HOTBAR)
 		{
 			Mw.getInstance().onTick();
 		}
@@ -111,7 +121,9 @@ public class EventHandler
 	{
 		if (Config.reloadColours)
 		{
-			Logging.logInfo("Skipping the first generation of blockcolours, models are not loaded yet", (Object[])null);
+			Logging.logInfo(
+					"Skipping the first generation of blockcolours, models are not loaded yet",
+					(Object[]) null);
 		}
 		else
 		{
@@ -124,20 +136,70 @@ public class EventHandler
 	{
 		if (Mw.getInstance().ready)
 		{
-			Mw.getInstance().markerManager.drawMarkersWorld(event.partialTicks);
+			Mw.getInstance().markerManager.drawMarkersWorld(event.getPartialTicks());
 		}
 	}
-	
-	
-	//a bit odd way to reload the blockcolours. if the models are not loaded yet then the uv values and icons will be wrong.
-	//this only happens if fml.skipFirstTextureLoad is enabled.
+
+	// a bit odd way to reload the blockcolours. if the models are not loaded
+	// yet then the uv values and icons will be wrong.
+	// this only happens if fml.skipFirstTextureLoad is enabled.
 	@SubscribeEvent
 	public void onGuiOpenEvent(GuiOpenEvent event)
 	{
-		if (event.gui instanceof GuiMainMenu && Config.reloadColours)
+		if (event.getGui() instanceof GuiMainMenu && Config.reloadColours)
 		{
 			this.mw.reloadBlockColours();
 			Config.reloadColours = false;
+		}
+		else if (event.getGui() instanceof GuiGameOver)
+		{
+			this.mw.onPlayerDeath();
+		}
+		else if (event.getGui() instanceof GuiScreenRealmsProxy)
+		{
+			try
+			{
+				RealmsScreen proxy = ((GuiScreenRealmsProxy) event.getGui()).getProxy();
+				RealmsMainScreen parrent = null;
+
+				if (proxy instanceof RealmsLongRunningMcoTaskScreen
+						|| proxy instanceof RealmsConfigureWorldScreen)
+				{
+					Object obj = FieldUtils.readField(proxy, "lastScreen", true);
+					if (obj instanceof RealmsMainScreen)
+					{
+						parrent = (RealmsMainScreen) obj;
+					}
+
+					if (parrent != null)
+					{
+						long id = (Long) FieldUtils.readField(parrent, "selectedServerId", true);
+						if (id > 0)
+						{
+							ArrayList list = (ArrayList) FieldUtils.readField(
+									parrent,
+									"realmsServers",
+									true);
+							for (Object item : list)
+							{
+								RealmsServer server = (RealmsServer) item;
+								String Name = server.getName();
+								String Owner = server.owner;
+								StringBuilder builder = new StringBuilder();
+								builder.append(server.owner);
+								builder.append("_");
+								builder.append(server.getName());
+								Utils.RealmsWorldName = builder.toString();
+							}
+						}
+					}
+
+				}
+			}
+			catch (IllegalAccessException e)
+			{
+
+			}
 		}
 	}
 }

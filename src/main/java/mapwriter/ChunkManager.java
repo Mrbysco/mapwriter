@@ -3,6 +3,8 @@ package mapwriter;
 import java.util.Arrays;
 import java.util.Map;
 
+import com.google.common.collect.Maps;
+
 import mapwriter.config.Config;
 import mapwriter.region.MwChunk;
 import mapwriter.tasks.SaveChunkTask;
@@ -10,11 +12,9 @@ import mapwriter.tasks.UpdateSurfaceChunksTask;
 import mapwriter.util.Utils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.BlockPos;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
-
-import com.google.common.collect.Maps;
 
 public class ChunkManager
 {
@@ -43,26 +43,19 @@ public class ChunkManager
 	// <-- done
 	public static MwChunk copyToMwChunk(Chunk chunk)
 	{
-		byte[][] lightingArray = new byte[16][];
 		Map<BlockPos, TileEntity> TileEntityMap = Maps.newHashMap();
 		TileEntityMap = Utils.checkedMapByCopy(chunk.getTileEntityMap(), BlockPos.class, TileEntity.class, false);
-		char[][] dataArray = new char[16][];
+		byte[] biomeArray = Arrays.copyOf(chunk.getBiomeArray(), chunk.getBiomeArray().length);
+		ExtendedBlockStorage[] dataArray =
+				Arrays.copyOf(chunk.getBlockStorageArray(), chunk.getBlockStorageArray().length);
 
-		ExtendedBlockStorage[] storageArrays = chunk.getBlockStorageArray();
-		if (storageArrays != null)
-		{
-			for (ExtendedBlockStorage storage : storageArrays)
-			{
-				if (storage != null)
-				{
-					int y = (storage.getYLocation() >> 4) & 0xf;
-					dataArray[y] = storage.getData();
-					lightingArray[y] = (storage.getBlocklightArray() != null) ? Arrays.copyOf(storage.getBlocklightArray().getData(), storage.getBlocklightArray().getData().length) : null;
-				}
-			}
-		}
-
-		return new MwChunk(chunk.xPosition, chunk.zPosition, chunk.getWorld().provider.getDimensionId(), dataArray, lightingArray, Arrays.copyOf(chunk.getBiomeArray(), chunk.getBiomeArray().length), TileEntityMap);
+		return new MwChunk(
+				chunk.xPosition,
+				chunk.zPosition,
+				chunk.getWorld().provider.getDimensionType().getId(),
+				dataArray,
+				biomeArray,
+				TileEntityMap);
 	}
 
 	public synchronized void addChunk(Chunk chunk)
@@ -111,7 +104,7 @@ public class ChunkManager
 		{
 			for (int x = 0; x < 3; x++)
 			{
-				Chunk chunk = this.mw.mc.theWorld.getChunkFromChunkCoords(chunkArrayX + x, chunkArrayZ + z);
+				Chunk chunk = this.mw.mc.world.getChunkFromChunkCoords(chunkArrayX + x, chunkArrayZ + z);
 				if (!chunk.isEmpty())
 				{
 					chunkArray[(z * 3) + x] = copyToMwChunk(chunk);
@@ -177,7 +170,8 @@ public class ChunkManager
 
 	private void addSaveChunkTask(Chunk chunk)
 	{
-		if ((Minecraft.getMinecraft().isSingleplayer() && Config.regionFileOutputEnabledMP) || (!Minecraft.getMinecraft().isSingleplayer() && Config.regionFileOutputEnabledSP))
+		if ((Minecraft.getMinecraft().isSingleplayer() && Config.regionFileOutputEnabledMP) ||
+				(!Minecraft.getMinecraft().isSingleplayer() && Config.regionFileOutputEnabledSP))
 		{
 			if (!chunk.isEmpty())
 			{

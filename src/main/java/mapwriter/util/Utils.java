@@ -18,9 +18,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.resources.I18n;
-import net.minecraft.realms.Realms;
 import net.minecraft.server.integrated.IntegratedServer;
-import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.chunk.Chunk;
 
 public class Utils
@@ -46,7 +45,7 @@ public class Utils
 		s = s.replace('\\', '_');
 		return Reference.patternInvalidChars.matcher(s).replaceAll("");
 	}
-	
+
 	public static String mungeStringForConfig(String s)
 	{
 		return Reference.patternInvalidChars2.matcher(s).replaceAll("");
@@ -82,10 +81,10 @@ public class Utils
 	// send an ingame chat message and console log
 	public static void printBoth(String msg)
 	{
-		EntityPlayerSP thePlayer = Minecraft.getMinecraft().thePlayer;
+		EntityPlayerSP thePlayer = Minecraft.getMinecraft().player;
 		if (thePlayer != null)
 		{
-			thePlayer.addChatMessage(new ChatComponentText(msg));
+			thePlayer.sendMessage(new TextComponentString(msg));
 		}
 		Logging.log("%s", msg);
 	}
@@ -106,6 +105,12 @@ public class Utils
 
 	public static IntBuffer allocateDirectIntBuffer(int size)
 	{
+		if (size < 1)
+		{
+			int NewSize = Minecraft.getGLMaximumTextureSize();
+			return ByteBuffer.allocateDirect((NewSize * NewSize) * 4).order(ByteOrder.nativeOrder()).asIntBuffer();
+
+		}
 		return ByteBuffer.allocateDirect(size * 4).order(ByteOrder.nativeOrder()).asIntBuffer();
 	}
 
@@ -144,6 +149,8 @@ public class Utils
 		return (dx * dx) + (dz * dz);
 	}
 
+	public static String RealmsWorldName = "";
+
 	public static String getWorldName()
 	{
 		String worldName;
@@ -157,7 +164,14 @@ public class Utils
 		}
 		else if (Minecraft.getMinecraft().isConnectedToRealms())
 		{
-			worldName = "Realms";
+			if (RealmsWorldName != "")
+			{
+				worldName = RealmsWorldName;
+			}
+			else
+			{
+				worldName = "Realms";
+			}
 		}
 		else
 		{
@@ -200,10 +214,10 @@ public class Utils
 			Object object = oclass.getMethod("getDesktop", new Class[0]).invoke((Object) null, new Object[0]);
 			oclass.getMethod("browse", new Class[]
 			{
-				URI.class
+					URI.class
 			}).invoke(object, new Object[]
 			{
-				p_175282_1_
+					p_175282_1_
 			});
 		}
 		catch (Throwable throwable)
@@ -347,7 +361,8 @@ public class Utils
 	 * well-typed, and only if <code>strict</code> was true
 	 */
 	@SuppressWarnings("rawtypes")
-	public static <K, V> Map<K, V> checkedMapByCopy(Map rawMap, Class<K> keyType, Class<V> valueType, boolean strict) throws ClassCastException
+	public static <K, V> Map<K, V> checkedMapByCopy(Map rawMap, Class<K> keyType, Class<V> valueType, boolean strict)
+			throws ClassCastException
 	{
 		Map<K, V> m2 = new HashMap<K, V>(((rawMap.size() * 4) / 3) + 1);
 		Iterator it = rawMap.entrySet().iterator();

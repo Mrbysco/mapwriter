@@ -5,9 +5,7 @@ import java.util.List;
 
 import mapwriter.Mw;
 import mapwriter.config.Config;
-import mapwriter.map.mapmode.LargeMapMode;
 import mapwriter.map.mapmode.MapMode;
-import mapwriter.map.mapmode.SmallMapMode;
 
 public class MiniMap
 {
@@ -30,22 +28,22 @@ public class MiniMap
 		this.view.setZoomLevel(Config.overlayZoomLevel);
 
 		// small map mode
-		this.smallMapMode = new SmallMapMode();
+		this.smallMapMode = new MapMode(Config.smallMap);
 		this.smallMap = new MapRenderer(mw, this.smallMapMode, this.view);
 
 		// large map mode
-		this.largeMapMode = new LargeMapMode();
+		this.largeMapMode = new MapMode(Config.largeMap);
 		this.largeMap = new MapRenderer(mw, this.largeMapMode, this.view);
 
 		this.mapList = new ArrayList<MapRenderer>();
 
 		// add small, large and underground map modes if they
 		// are enabled.
-		if (this.smallMapMode.config.enabled)
+		if (this.smallMapMode.getConfig().enabled)
 		{
 			this.mapList.add(this.smallMap);
 		}
-		if (this.largeMapMode.config.enabled)
+		if (this.largeMapMode.getConfig().enabled)
 		{
 			this.mapList.add(this.largeMap);
 		}

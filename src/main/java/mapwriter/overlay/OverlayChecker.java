@@ -3,11 +3,12 @@ package mapwriter.overlay;
 import java.awt.Point;
 import java.util.ArrayList;
 
+import mapwriter.api.ILabelInfo;
+import mapwriter.api.IMapMode;
+import mapwriter.api.IMapView;
 import mapwriter.api.IMwChunkOverlay;
 import mapwriter.api.IMwDataProvider;
-import mapwriter.map.MapView;
-import mapwriter.map.mapmode.MapMode;
-import net.minecraft.util.MathHelper;
+import net.minecraft.util.math.MathHelper;
 
 public class OverlayChecker implements IMwDataProvider
 {
@@ -61,19 +62,20 @@ public class OverlayChecker implements IMwDataProvider
 	}
 
 	@Override
-	public ArrayList<IMwChunkOverlay> getChunksOverlay(int dim, double centerX, double centerZ, double minX, double minZ, double maxX, double maxZ)
+	public ArrayList<IMwChunkOverlay> getChunksOverlay(int dim, double centerX, double centerZ, double minX,
+			double minZ, double maxX, double maxZ)
 	{
 
 		// We should pass the center of the map too to reduce the display like
 		// in this case
 		// and the zoom lvl, to provide higher level informations
 
-		int minChunkX = (MathHelper.ceiling_double_int(minX) >> 4) - 1;
-		int minChunkZ = (MathHelper.ceiling_double_int(minZ) >> 4) - 1;
-		int maxChunkX = (MathHelper.ceiling_double_int(maxX) >> 4) + 1;
-		int maxChunkZ = (MathHelper.ceiling_double_int(maxZ) >> 4) + 1;
-		int cX = (MathHelper.ceiling_double_int(centerX) >> 4) + 1;
-		int cZ = (MathHelper.ceiling_double_int(centerZ) >> 4) + 1;
+		int minChunkX = (MathHelper.ceil(minX) >> 4) - 1;
+		int minChunkZ = (MathHelper.ceil(minZ) >> 4) - 1;
+		int maxChunkX = (MathHelper.ceil(maxX) >> 4) + 1;
+		int maxChunkZ = (MathHelper.ceil(maxZ) >> 4) + 1;
+		int cX = (MathHelper.ceil(centerX) >> 4) + 1;
+		int cZ = (MathHelper.ceil(centerZ) >> 4) + 1;
 
 		int limitMinX = Math.max(minChunkX, cX - 100);
 		int limitMaxX = Math.min(maxChunkX, cX + 100);
@@ -103,50 +105,56 @@ public class OverlayChecker implements IMwDataProvider
 	}
 
 	@Override
-	public void onMiddleClick(int dim, int bX, int bZ, MapView mapview)
+	public void onMiddleClick(int dim, int bX, int bZ, IMapView mapview)
 	{
 	}
 
 	@Override
-	public void onDimensionChanged(int dimension, MapView mapview)
+	public void onDimensionChanged(int dimension, IMapView mapview)
 	{
 	}
 
 	@Override
-	public void onMapCenterChanged(double vX, double vZ, MapView mapview)
-	{
-
-	}
-
-	@Override
-	public void onZoomChanged(int level, MapView mapview)
+	public void onMapCenterChanged(double vX, double vZ, IMapView mapview)
 	{
 
 	}
 
 	@Override
-	public void onOverlayActivated(MapView mapview)
+	public void onZoomChanged(int level, IMapView mapview)
 	{
 
 	}
 
 	@Override
-	public void onOverlayDeactivated(MapView mapview)
+	public void onOverlayActivated(IMapView mapview)
 	{
 
 	}
 
 	@Override
-	public void onDraw(MapView mapview, MapMode mapmode)
+	public void onOverlayDeactivated(IMapView mapview)
 	{
 
 	}
 
 	@Override
-	public boolean onMouseInput(MapView mapview, MapMode mapmode)
+	public void onDraw(IMapView mapview, IMapMode mapmode)
+	{
+
+	}
+
+	@Override
+	public boolean onMouseInput(IMapView mapview, IMapMode mapmode)
 	{
 
 		return false;
+	}
+
+	@Override
+	public ILabelInfo getLabelInfo(int mouseX, int mouseY)
+	{
+		return null;
 	}
 
 }

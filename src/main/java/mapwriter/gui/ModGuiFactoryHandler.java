@@ -32,4 +32,16 @@ public class ModGuiFactoryHandler implements IModGuiFactory
 		return null;
 	}
 
+	@Override
+	public boolean hasConfigGui() {
+		// TODO Auto-generated method stub
+		return true;
+	}
+
+	@Override
+	public GuiScreen createConfigGui(GuiScreen parentScreen) {
+		// TODO Auto-generated method stub
+		return new ModGuiConfig(parentScreen);
+	}
+
 }

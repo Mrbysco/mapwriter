@@ -1,14 +1,15 @@
 package mapwriter.util;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.renderer.vertex.VertexBuffer;
 
 /*
  * MwRender contains most of the code for drawing the overlay. This includes: -
@@ -170,12 +171,12 @@ public class Render
 			GlStateManager.enableBlend();
 			GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 			Tessellator tessellator = Tessellator.getInstance();
-			WorldRenderer renderer = tessellator.getWorldRenderer();
-			renderer.begin(GL11.GL_QUADS , DefaultVertexFormats.POSITION_TEX );;
-			renderer.pos(x + w, y, zDepth).tex(u2, v1).endVertex();
-			renderer.pos(x, y, zDepth).tex(u1, v1).endVertex();
-			renderer.pos(x, y + h, zDepth).tex(u1, v2).endVertex();
-			renderer.pos(x + w, y + h, zDepth).tex(u2, v2).endVertex();
+			BufferBuilder vertexbuffer = tessellator.getBuffer();
+			vertexbuffer.begin(GL11.GL_QUADS , DefaultVertexFormats.POSITION_TEX );;
+			vertexbuffer.pos(x + w, y, zDepth).tex(u2, v1).endVertex();
+			vertexbuffer.pos(x, y, zDepth).tex(u1, v1).endVertex();
+			vertexbuffer.pos(x, y + h, zDepth).tex(u1, v2).endVertex();
+			vertexbuffer.pos(x + w, y + h, zDepth).tex(u2, v2).endVertex();
 			// renderer.finishDrawing();
 			tessellator.draw();
 			GlStateManager.disableBlend();
@@ -195,12 +196,12 @@ public class Render
 		GlStateManager.disableTexture2D();
 		GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 		Tessellator tessellator = Tessellator.getInstance();
-		WorldRenderer renderer = tessellator.getWorldRenderer();
-		renderer.begin(GL11.GL_TRIANGLE_FAN, DefaultVertexFormats.POSITION);
-		renderer.pos(x + (length * Math.cos(angle)), y + (length * Math.sin(angle)), zDepth).endVertex();
-		renderer.pos(x + (length * 0.5D * Math.cos(angle - arrowBackAngle)), y + (length * 0.5D * Math.sin(angle - arrowBackAngle)), zDepth).endVertex();
-		renderer.pos(x + (length * 0.3D * Math.cos(angle + Math.PI)), y + (length * 0.3D * Math.sin(angle + Math.PI)), zDepth).endVertex();
-		renderer.pos(x + (length * 0.5D * Math.cos(angle + arrowBackAngle)), y + (length * 0.5D * Math.sin(angle + arrowBackAngle)), zDepth).endVertex();
+		BufferBuilder vertexbuffer = tessellator.getBuffer();
+		vertexbuffer.begin(GL11.GL_TRIANGLE_FAN, DefaultVertexFormats.POSITION);
+		vertexbuffer.pos(x + (length * Math.cos(angle)), y + (length * Math.sin(angle)), zDepth).endVertex();
+		vertexbuffer.pos(x + (length * 0.5D * Math.cos(angle - arrowBackAngle)), y + (length * 0.5D * Math.sin(angle - arrowBackAngle)), zDepth).endVertex();
+		vertexbuffer.pos(x + (length * 0.3D * Math.cos(angle + Math.PI)), y + (length * 0.3D * Math.sin(angle + Math.PI)), zDepth).endVertex();
+		vertexbuffer.pos(x + (length * 0.5D * Math.cos(angle + arrowBackAngle)), y + (length * 0.5D * Math.sin(angle + arrowBackAngle)), zDepth).endVertex();
 		// renderer.finishDrawing();
 		tessellator.draw();
 		GlStateManager.enableTexture2D();
@@ -213,11 +214,11 @@ public class Render
 		GlStateManager.disableTexture2D();
 		GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 		Tessellator tessellator = Tessellator.getInstance();
-		WorldRenderer renderer = tessellator.getWorldRenderer();
-		renderer.begin(GL11.GL_TRIANGLES, DefaultVertexFormats.POSITION);
-		renderer.pos(x1, y1, zDepth).endVertex();
-		renderer.pos(x2, y2, zDepth).endVertex();
-		renderer.pos(x3, y3, zDepth).endVertex();
+		BufferBuilder vertexbuffer = tessellator.getBuffer();
+		vertexbuffer.begin(GL11.GL_TRIANGLES, DefaultVertexFormats.POSITION);
+		vertexbuffer.pos(x1, y1, zDepth).endVertex();
+		vertexbuffer.pos(x2, y2, zDepth).endVertex();
+		vertexbuffer.pos(x3, y3, zDepth).endVertex();
 		// renderer.finishDrawing();
 		tessellator.draw();
 		GlStateManager.enableTexture2D();
@@ -230,12 +231,12 @@ public class Render
 		GlStateManager.disableTexture2D();
 		GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 		Tessellator tessellator = Tessellator.getInstance();
-		WorldRenderer renderer = tessellator.getWorldRenderer();
-		renderer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
-		renderer.pos(x + w, y, zDepth).endVertex();
-		renderer.pos(x, y, zDepth).endVertex();
-		renderer.pos(x, y + h, zDepth).endVertex();
-		renderer.pos(x + w, y + h, zDepth).endVertex();
+		BufferBuilder vertexbuffer = tessellator.getBuffer();
+		vertexbuffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
+		vertexbuffer.pos(x + w, y, zDepth).endVertex();
+		vertexbuffer.pos(x, y, zDepth).endVertex();
+		vertexbuffer.pos(x, y + h, zDepth).endVertex();
+		vertexbuffer.pos(x + w, y + h, zDepth).endVertex();
 		// renderer.finishDrawing();
 		tessellator.draw();
 		GlStateManager.enableTexture2D();
@@ -248,16 +249,16 @@ public class Render
 		GlStateManager.disableTexture2D();
 		GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 		Tessellator tessellator = Tessellator.getInstance();
-		WorldRenderer renderer = tessellator.getWorldRenderer();
-		renderer.begin(GL11.GL_TRIANGLE_FAN, DefaultVertexFormats.POSITION);
-		renderer.pos(x, y, zDepth).endVertex();
+		BufferBuilder vertexbuffer = tessellator.getBuffer();
+		vertexbuffer.begin(GL11.GL_TRIANGLE_FAN, DefaultVertexFormats.POSITION);
+		vertexbuffer.pos(x, y, zDepth).endVertex();
 		// for some the circle is only drawn if theta is decreasing rather than
 		// ascending
 		double end = Math.PI * 2.0;
 		double incr = end / circleSteps;
 		for (double theta = -incr; theta < end; theta += incr)
 		{
-			renderer.pos(x + (r * Math.cos(-theta)), y + (r * Math.sin(-theta)), zDepth).endVertex();
+			vertexbuffer.pos(x + (r * Math.cos(-theta)), y + (r * Math.sin(-theta)), zDepth).endVertex();
 		}
 		// renderer.finishDrawing();
 		tessellator.draw();
@@ -271,8 +272,8 @@ public class Render
 		GlStateManager.disableTexture2D();
 		GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 		Tessellator tessellator = Tessellator.getInstance();
-		WorldRenderer renderer = tessellator.getWorldRenderer();
-		renderer.begin(GL11.GL_TRIANGLE_STRIP, DefaultVertexFormats.POSITION);
+		BufferBuilder vertexbuffer = tessellator.getBuffer();
+		vertexbuffer.begin(GL11.GL_TRIANGLE_STRIP, DefaultVertexFormats.POSITION);
 		// for some the circle is only drawn if theta is decreasing rather than
 		// ascending
 		double end = Math.PI * 2.0;
@@ -280,8 +281,8 @@ public class Render
 		double r2 = r + width;
 		for (double theta = -incr; theta < end; theta += incr)
 		{
-			renderer.pos(x + (r * Math.cos(-theta)), y + (r * Math.sin(-theta)), zDepth).endVertex();
-			renderer.pos(x + (r2 * Math.cos(-theta)), y + (r2 * Math.sin(-theta)), zDepth).endVertex();
+			vertexbuffer.pos(x + (r * Math.cos(-theta)), y + (r * Math.sin(-theta)), zDepth).endVertex();
+			vertexbuffer.pos(x + (r2 * Math.cos(-theta)), y + (r2 * Math.sin(-theta)), zDepth).endVertex();
 		}
 		// renderer.finishDrawing();
 		tessellator.draw();
@@ -345,11 +346,12 @@ public class Render
 		// always write to depth buffer
 		GlStateManager.depthFunc(GL11.GL_ALWAYS);
 
-		// draw stencil pattern (filled circle at z = 1000.0)
+		// draw stencil pattern (filled circle at z = 0000.0)
+		// map will be drawn behind the stencil
 		Render.setColour(0xffffffff);
-		Render.zDepth = 1000.0;
+		Render.zDepth = 0.0;
 		Render.drawCircle(x, y, r);
-		Render.zDepth = 200.0;
+		Render.zDepth = -1.0;
 
 		// re-enable drawing to colour buffer
 		GlStateManager.colorMask(true, true, true, true);

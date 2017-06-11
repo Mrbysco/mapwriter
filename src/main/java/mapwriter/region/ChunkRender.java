@@ -1,6 +1,7 @@
 package mapwriter.region;
 
 import mapwriter.config.Config;
+import net.minecraft.block.state.IBlockState;
 
 public class ChunkRender
 {
@@ -53,7 +54,10 @@ public class ChunkRender
 			return Math.atan(heightDiffFactor) * 0.3;
 		}
 
-		return (heightDiffFactor >= 0.0) ? Math.pow(heightDiffFactor * (1 / 255.0), brightenExponent) * brightenAmplitude : -Math.pow(-(heightDiffFactor * (1 / 255.0)), darkenExponent) * darkenAmplitude;
+		return (heightDiffFactor >= 0.0) ? Math.pow(
+				heightDiffFactor * (1 / 255.0),
+				brightenExponent) * brightenAmplitude
+				: -Math.pow(-(heightDiffFactor * (1 / 255.0)), darkenExponent) * darkenAmplitude;
 	}
 
 	// calculate the colour of a pixel by alpha blending the colour of each
@@ -81,7 +85,8 @@ public class ChunkRender
 	// note that the "front to back" alpha blending algorithm is used
 	// rather than the more common "back to front".
 	//
-	public static int getColumnColour(BlockColours bc, IChunk chunk, int x, int y, int z, int heightW, int heightN)
+	public static int getColumnColour(BlockColours bc, IChunk chunk, int x, int y, int z,
+			int heightW, int heightN)
 	{
 		double a = 1.0;
 		double r = 0.0;
@@ -89,8 +94,8 @@ public class ChunkRender
 		double b = 0.0;
 		for (; y > 0; y--)
 		{
-			int blockAndMeta = chunk.getBlockAndMetadata(x, y, z);
-			int c1 = bc.getColour(blockAndMeta);
+			IBlockState blockState = chunk.getBlockState(x, y, z);
+			int c1 = bc.getColour(blockState);
 			int alpha = (c1 >> 24) & 0xff;
 
 			// this is the color that gets returned for air, so set aplha to 0
@@ -103,8 +108,9 @@ public class ChunkRender
 			// no need to process block if it is transparent
 			if (alpha > 0)
 			{
-				int biome = chunk.getBiome(x, z);
-				int c2 = bc.getBiomeColour(blockAndMeta, biome);
+
+				int biome = chunk.getBiome(x, y, z);
+				int c2 = bc.getBiomeColour(blockState, biome);
 
 				// extract colour components as normalized doubles
 				double c1A = (alpha) / 255.0;
@@ -150,7 +156,8 @@ public class ChunkRender
 
 		// now we have our final RGB values as doubles, convert to a packed ARGB
 		// pixel.
-		return ((y & 0xff) << 24) | ((((int) (r * 255.0)) & 0xff) << 16) | ((((int) (g * 255.0)) & 0xff) << 8) | ((((int) (b * 255.0)) & 0xff));
+		return ((y & 0xff) << 24) | ((((int) (r * 255.0)) & 0xff) << 16) | ((((int) (g * 255.0))
+				& 0xff) << 8) | ((((int) (b * 255.0)) & 0xff));
 	}
 
 	static int getPixelHeightN(int[] pixels, int offset, int scanSize)
@@ -163,7 +170,8 @@ public class ChunkRender
 		return ((offset & (scanSize - 1)) >= 1) ? ((pixels[offset - 1] >> 24) & 0xff) : -1;
 	}
 
-	public static void renderSurface(BlockColours bc, IChunk chunk, int[] pixels, int offset, int scanSize, boolean dimensionHasCeiling)
+	public static void renderSurface(BlockColours bc, IChunk chunk, int[] pixels, int offset,
+			int scanSize, boolean dimensionHasCeiling)
 	{
 		int chunkMaxY = chunk.getMaxY();
 		for (int z = 0; z < MwChunk.SIZE; z++)
@@ -180,10 +188,11 @@ public class ChunkRender
 				{
 					for (y = 127; y >= 0; y--)
 					{
-						int blockAndMeta = chunk.getBlockAndMetadata(x, y, z);
-						int alpha = (bc.getColour(blockAndMeta) >> 24) & 0xff;
+						IBlockState blockState = chunk.getBlockState(x, y, z);
+						int color = bc.getColour(blockState);
+						int alpha = (color >> 24) & 0xff;
 
-						if (bc.getColour(blockAndMeta) == -8650628)
+						if (color == -8650628)
 						{
 							alpha = 0;
 						}
@@ -200,12 +209,20 @@ public class ChunkRender
 				}
 
 				int pixelOffset = offset + (z * scanSize) + x;
-				pixels[pixelOffset] = getColumnColour(bc, chunk, x, y, z, getPixelHeightW(pixels, pixelOffset, scanSize), getPixelHeightN(pixels, pixelOffset, scanSize));
+				pixels[pixelOffset] = getColumnColour(
+						bc,
+						chunk,
+						x,
+						y,
+						z,
+						getPixelHeightW(pixels, pixelOffset, scanSize),
+						getPixelHeightN(pixels, pixelOffset, scanSize));
 			}
 		}
 	}
 
-	public static void renderUnderground(BlockColours bc, IChunk chunk, int[] pixels, int offset, int scanSize, int startY, byte[] mask)
+	public static void renderUnderground(BlockColours bc, IChunk chunk, int[] pixels, int offset,
+			int scanSize, int startY, byte[] mask)
 	{
 		startY = Math.min(Math.max(0, startY), 255);
 		for (int z = 0; z < MwChunk.SIZE; z++)
@@ -226,10 +243,11 @@ public class ChunkRender
 				int lastNonTransparentY = startY;
 				for (int y = startY; y < chunk.getMaxY(); y++)
 				{
-					int blockAndMeta = chunk.getBlockAndMetadata(x, y, z);
-					int alpha = (bc.getColour(blockAndMeta) >> 24) & 0xff;
+					IBlockState blockState = chunk.getBlockState(x, y, z);
+					int color = bc.getColour(blockState);
+					int alpha = (color >> 24) & 0xff;
 
-					if (bc.getColour(blockAndMeta) == -8650628)
+					if (color == -8650628)
 					{
 						alpha = 0;
 					}
@@ -245,7 +263,14 @@ public class ChunkRender
 				}
 
 				int pixelOffset = offset + (z * scanSize) + x;
-				pixels[pixelOffset] = getColumnColour(bc, chunk, x, lastNonTransparentY, z, getPixelHeightW(pixels, pixelOffset, scanSize), getPixelHeightN(pixels, pixelOffset, scanSize));
+				pixels[pixelOffset] = getColumnColour(
+						bc,
+						chunk,
+						x,
+						lastNonTransparentY,
+						z,
+						getPixelHeightW(pixels, pixelOffset, scanSize),
+						getPixelHeightN(pixels, pixelOffset, scanSize));
 			}
 		}
 	}

@@ -3,16 +3,20 @@ package mapwriter.map;
 import java.awt.Point;
 import java.util.Arrays;
 
+import org.lwjgl.opengl.GL11;
+
 import mapwriter.Mw;
 import mapwriter.region.ChunkRender;
 import mapwriter.region.IChunk;
 import mapwriter.util.Texture;
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
-import net.minecraft.util.BlockPos;
+import net.minecraft.init.Biomes;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
-
-import org.lwjgl.opengl.GL11;
 
 public class UndergroundTexture extends Texture
 {
@@ -46,18 +50,28 @@ public class UndergroundTexture extends Texture
 		}
 
 		@Override
-		public int getBlockAndMetadata(int x, int y, int z)
+		public IBlockState getBlockState(int x, int y, int z)
 		{
-			Block block = this.chunk.getBlock(x, y, z);
-			int blockid = Block.blockRegistry.getIDForObject(block);
-			int meta = this.chunk.getBlockMetadata(new BlockPos(x, y, z));
-			return ((blockid & 0xfff) << 4) | (meta & 0xf);
+			return this.chunk.getBlockState(x, y, z);
 		}
 
 		@Override
-		public int getBiome(int x, int z)
+		public int getBiome(int x, int y, int z)
 		{
-			return this.chunk.getBiomeArray()[(z * 16) + x];
+			int i = x & 15;
+			int j = z & 15;
+			int k = this.chunk.getBiomeArray()[j << 4 | i] & 255;
+
+			if (k == 255)
+			{
+				Biome biome =
+						Minecraft.getMinecraft().world.getBiomeProvider().getBiome(
+								new BlockPos(k, k, k),
+								Biomes.PLAINS);
+				k = Biome.getIdForBiome(biome);
+			}
+			;
+			return k;
 		}
 
 		@Override
@@ -171,7 +185,7 @@ public class UndergroundTexture extends Texture
 
 		int cxMax = this.updateX + 2;
 		int czMax = this.updateZ + 2;
-		WorldClient world = this.mw.mc.theWorld;
+		WorldClient world = this.mw.mc.world;
 		int flagOffset = 0;
 		for (int cz = this.updateZ; cz <= czMax; cz++)
 		{
@@ -184,7 +198,14 @@ public class UndergroundTexture extends Texture
 					int tz = (cz << 4) & (this.textureSize - 1);
 					int pixelOffset = (tz * this.textureSize) + tx;
 					byte[] mask = this.updateFlags[flagOffset];
-					ChunkRender.renderUnderground(this.mw.blockColours, new RenderChunk(chunk), this.pixels, pixelOffset, this.textureSize, this.py, mask);
+					ChunkRender.renderUnderground(
+							this.mw.blockColours,
+							new RenderChunk(chunk),
+							this.pixels,
+							pixelOffset,
+							this.textureSize,
+							this.py,
+							mask);
 				}
 				flagOffset += 1;
 			}
@@ -222,9 +243,10 @@ public class UndergroundTexture extends Texture
 				if (columnFlag == ChunkRender.FLAG_UNPROCESSED)
 				{
 					// if column not yet processed
-					WorldClient world = this.mw.mc.theWorld;
-					Block block = world.getBlockState(new BlockPos(x, y, z)).getBlock();
-					if ((block == null) || !block.isOpaqueCube())
+					WorldClient world = this.mw.mc.world;
+					IBlockState state = world.getBlockState(new BlockPos(x, y, z));
+					Block block = state.getBlock();
+					if ((block == null) || !block.isOpaqueCube(state))
 					{
 						// if block is not opaque
 						this.updateFlags[chunkOffset][columnOffset] = ChunkRender.FLAG_NON_OPAQUE;

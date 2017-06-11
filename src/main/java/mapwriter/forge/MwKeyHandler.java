@@ -2,6 +2,8 @@ package mapwriter.forge;
 
 import java.util.ArrayList;
 
+import org.lwjgl.input.Keyboard;
+
 import mapwriter.Mw;
 import mapwriter.util.Reference;
 import net.minecraft.client.settings.KeyBinding;
@@ -10,8 +12,6 @@ import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Optional;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.InputEvent;
-
-import org.lwjgl.input.Keyboard;
 
 public class MwKeyHandler
 {
@@ -53,10 +53,7 @@ public class MwKeyHandler
 	@SubscribeEvent
 	public void keyEvent(InputEvent.KeyInputEvent event)
 	{
-		if (!Loader.isModLoaded("notenoughkeys"))
-		{
-			this.checkKeys();
-		}
+		this.checkKeys();
 	}
 
 	private void checkKeys()

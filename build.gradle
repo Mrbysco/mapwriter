@@ -1,67 +1,63 @@
-
-// For those who want the bleeding edge
 buildscript {
     repositories {
         jcenter()
-        maven {
-            name = "forge"
-            url = "http://files.minecraftforge.net/maven"
-        }
-		maven { 
-			url = 'https://oss.sonatype.org/content/groups/public' 
-		}
+        maven { url = "http://files.minecraftforge.net/maven" }
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
-		//classpath 'com.matthewprenger:CurseGradle:1.0.5-SNAPSHOT'
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
     }
 }
+apply plugin: 'net.minecraftforge.gradle.forge'
+//Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
 
-// for people who want stable
-plugins {
-    //id "net.minecraftforge.gradle.forge" version "2.0.2"
-	id 'com.matthewprenger.cursegradle' version '1.0.4'
+
+version = "2.7.0"
+group = "mapwriter" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = "mapwriter"
+
+sourceCompatibility = targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
+compileJava {
+    sourceCompatibility = targetCompatibility = '1.8'
 }
 
-apply plugin: 'net.minecraftforge.gradle.forge'
-apply plugin: 'com.matthewprenger.cursegradle'
-
-repositories {
-	mavenLocal()
-} 
-
-// Define properties file
-ext.configFile = file "build.properties"
-
-configFile.withReader {
-// Load config. It shall from now be referenced as simply config or project.config
-def prop = new Properties()
-prop.load(it)
-project.ext.config = new ConfigSlurper().parse prop
+minecraft {
+    version = "1.12-14.21.0.2321"
+    runDir = "run"
+    
+    // the mappings can be changed at any time, and must be in the following format.
+    // snapshot_YYYYMMDD   snapshot are built nightly.
+    // stable_#            stables are built at the discretion of the MCP team.
+    // Use non-default mappings at your own risk. they may not always work.
+    // simply re-run your setup task after changing the mappings to update your workspace.
+    mappings = "snapshot_20161220"
+    // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
 }
 
 dependencies {
-	if (config.isSet('dependicies'))	{
-		def dep = config.dependicies.split(", ")
-		dep.each { compile it }
-	}
+    // you may put jars on which you depend on in ./libs
+    // or you may define them like so..
+    //compile "some.group:artifact:version:classifier"
+    //compile "some.group:artifact:version"
+      
+    // real examples
+    //compile 'com.mod-buildcraft:buildcraft:6.0.8:dev'  // adds buildcraft to the dev env
+    //compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24' // adds ejml to the dev env
+
+    // the 'provided' configuration is for optional dependencies that exist at compile-time but might not at runtime.
+    //provided 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+
+    // the deobf configurations:  'deobfCompile' and 'deobfProvided' are the same as the normal compile and provided,
+    // except that these dependencies get remapped to your current MCP mappings
+    //deobfCompile 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+    //deobfProvided 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+
+    // for more info...
+    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
+    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+
 }
 
-group= config.mod_group
-version = config.mod_version
-archivesBaseName = config.mod_name
-
-
-minecraft {
-version = config.mc_version + "-" + config.forge_version
-runDir = "eclipse"
-mappings = config.mcp_version
-replace '@MOD_VERSION@', config.mod_version
-replace '@ACCEPTED_MC_VERSION@', config.accepted_mc_version
-}
-
-processResources
-{
+processResources {
     // this will ensure that this task is redone when the versions change.
     inputs.property "version", project.version
     inputs.property "mcversion", project.minecraft.version
@@ -74,62 +70,8 @@ processResources
         expand 'version':project.version, 'mcversion':project.minecraft.version
     }
         
-    // copy everything else, thats not the mcmod.info
+    // copy everything else except the mcmod.info
     from(sourceSets.main.resources.srcDirs) {
         exclude 'mcmod.info'
     }
-}
-
-version = "${project.minecraft.version}-${project.version}"
-
-jar {
-//classifier = 'universal'
-}
-
-task devJar(type: Jar) {
-	from sourceSets.main.output
-	classifier = 'dev'
-}
-
-artifacts {
-    		archives sourceJar
-			archives devJar
-}
-
-eclipse {
-    // replace absolute paths with classpath variable GRADLE_CACHE
-    pathVariables 'GRADLE_CACHE': gradle.gradleUserHomeDir
-}
-
-eclipse.classpath.file.whenMerged { classpath ->
-  classpath.entries.each { entry ->
-    if (entry.kind == 'lib') {
-      // for jar files referenced in project folder, use relative path
-      def prefix = projectDir.absolutePath.replace('\\', '/')
-      entry.path = entry.path.replace(prefix, "/$eclipse.project.name")
-    }
-  }
-}
-
-gradle.taskGraph.whenReady { taskGraph ->
-  if (!taskGraph.allTasks.findAll{ it.name == 'eclipseClasspath' }.empty) {
-    gradle.buildFinished {
-      println '----------------------------------------------------------------------'
-      print   "Please set the Eclipse classpath variable 'GRADLE_USER_HOME' in Preferences "
-      println "-> Java -> Build path -> Classpath Variable to $gradle.gradleUserHomeDir"
-      println '----------------------------------------------------------------------'
-    }
-  }
-}
-
-curseforge {
-  apiKey = project.hasProperty('curseForgeApiKey') ? project.curseForgeApiKey : ''
-  project {
-	//changelogType = "text"
-    id = config.curse_project_id
-    changelog = "" // A file can also be set using: changelog = file('changelog.txt')
-    releaseType = config.release_type
-	mainArtifact jar
-	addGameVersion config.mc_version
-  }
 }

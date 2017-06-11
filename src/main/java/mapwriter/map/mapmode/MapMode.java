@@ -2,41 +2,42 @@ package mapwriter.map.mapmode;
 
 import java.awt.Point;
 
+import mapwriter.api.IMapMode;
+import mapwriter.api.IMapView;
 import mapwriter.config.MapModeConfig;
-import mapwriter.map.MapView;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 
-public class MapMode
+public class MapMode implements IMapMode
 {
 	private int sw = 320;
 	private int sh = 240;
 	private double screenScalingFactor = 1.0;
 
 	// calculated before every frame drawn by updateMapDimensions
-	public int xTranslation = 0;
-	public int yTranslation = 0;
-	public int x = -25;
-	public int y = -25;
-	public int w = 50;
-	public int h = 50;
-	public int wPixels = 50;
-	public int hPixels = 50;
+	private int xTranslation = 0;
+	private int yTranslation = 0;
+	private int x = -25; // x cordinate in the middle of the map
+	private int y = -25; // y cordinate in the middle of the map
+	private int w = 50;
+	private int h = 50;
+	private int wPixels = 50;
+	private int hPixels = 50;
 
-	public int marginTop = 10;
-	public int marginBottom = -1;
-	public int marginLeft = -1;
-	public int marginRight = 10;
-
-	public String lastPos = MapModeConfig.miniMapPositionStringArray[0];
+	private int textX = 0;
+	private int textY = 0;
+	private int textColour = 0xffffffff;
 
 	// config settings
+	private double widthPercent;
+	private double heightPercent;
+	private double xPos;
+	private double yPos;
 
-	public int textX = 0;
-	public int textY = 0;
-	public int textColour = 0xffffffff;
+	private int mouseXOffset;
+	private int mouseYOffset;
 
-	public MapModeConfig config;
+	private MapModeConfig config;
 
 	public MapMode(MapModeConfig config)
 	{
@@ -59,125 +60,50 @@ public class MapMode
 	{
 		Minecraft mc = Minecraft.getMinecraft();
 		ScaledResolution sRes = new ScaledResolution(mc);
-		this.setScreenRes(mc.displayWidth, mc.displayHeight, sRes.getScaledWidth(), sRes.getScaledHeight(), sRes.getScaleFactor());
+		this.setScreenRes(
+				mc.displayWidth,
+				mc.displayHeight,
+				sRes.getScaledWidth(),
+				sRes.getScaledHeight(),
+				sRes.getScaleFactor());
 	}
 
 	public void updateMargin()
 	{
-		if (this.lastPos.equals(this.config.Position))
+		if (this.widthPercent != this.config.widthPercent
+				|| this.heightPercent != this.config.heightPercent || this.xPos != this.config.xPos
+				|| this.yPos != this.config.yPos)
 		{
-			return;
-		}
+			this.widthPercent = this.config.widthPercent;
+			this.heightPercent = this.config.heightPercent;
+			this.xPos = this.config.xPos;
+			this.yPos = this.config.yPos;
 
-		// top right
-		if (this.config.Position.equals(MapModeConfig.miniMapPositionStringArray[0]))
-		{
-			this.marginTop = 10;
-			this.marginBottom = -1;
-			this.marginLeft = -1;
-			this.marginRight = 10;
+			this.update();
 		}
-		// top left
-		else if (this.config.Position.equals(MapModeConfig.miniMapPositionStringArray[1]))
-		{
-			this.marginTop = 10;
-			this.marginBottom = -1;
-			this.marginLeft = 10;
-			this.marginRight = -1;
-		}
-		// botom right
-		else if (this.config.Position.equals(MapModeConfig.miniMapPositionStringArray[2]))
-		{
-			this.marginTop = -1;
-			this.marginBottom = 40;
-			this.marginLeft = -1;
-			this.marginRight = 10;
-		}
-		// botom left
-		else if (this.config.Position.equals(MapModeConfig.miniMapPositionStringArray[3]))
-		{
-			this.marginTop = -1;
-			this.marginBottom = 40;
-			this.marginLeft = 10;
-			this.marginRight = -1;
-		}
-		else if (this.config.Position.equals("FullScreen"))
-		{
-			this.marginTop = 0;
-			this.marginBottom = 0;
-			this.marginLeft = 0;
-			this.marginRight = 0;
-		}
-		else if (this.config.Position.equals("Large"))
-		{
-			this.marginTop = 10;
-			this.marginBottom = 40;
-			this.marginLeft = 40;
-			this.marginRight = 40;
-		}
-		this.update();
 	}
 
 	private void update()
 	{
-		int size = (this.sh * this.config.heightPercent) / 100;
-		int x, y;
+		double x, y;
 
-		// calculate map x position and width
-		if ((this.marginLeft >= 0) && (this.marginRight >= 0))
-		{
-			x = this.marginLeft;
-			this.w = this.sw - this.marginLeft - this.marginRight;
-		}
-		else if (this.marginLeft >= 0)
-		{
-			x = this.marginLeft;
-			this.w = size;
-		}
-		else if (this.marginRight >= 0)
-		{
-			x = this.sw - size - this.marginRight;
-			this.w = size;
-		}
-		else
-		{
-			x = (this.sw - size) / 2;
-			this.w = size;
-		}
+		this.w = (int) ((double) this.sw * (this.widthPercent / 100.0));
+		this.h = (int) ((double) this.sh * (this.heightPercent / 100.0));
 
-		// calculate map y position and height
-		if ((this.marginTop >= 0) && (this.marginBottom >= 0))
+		if (this.config.circular)
 		{
-			y = this.marginTop;
-			this.h = this.sh - this.marginTop - this.marginBottom;
-		}
-		else if (this.marginTop >= 0)
-		{
-			y = this.marginTop;
-			this.h = size;
-		}
-		else if (this.marginBottom >= 0)
-		{
-			y = this.sh - size - this.marginBottom;
-			this.h = size;
-		}
-		else
-		{
-			y = (this.sh - size) / 2;
-			this.h = size;
+			this.w = this.h;
 		}
 
 		// make sure width and height are multiples of 2
 		this.w &= -2;
 		this.h &= -2;
 
-		this.xTranslation = x + (this.w >> 1);
-		this.yTranslation = y + (this.h >> 1);
+		x = ((this.sw - this.w) * (this.xPos / 100.0));
+		y = ((this.sh - this.h) * (this.yPos / 100.0));
 
-		if (this.config.circular)
-		{
-			this.w = this.h;
-		}
+		this.xTranslation = (int) (x + (this.w >> 1));
+		this.yTranslation = (int) (y + (this.h >> 1));
 
 		this.x = -(this.w >> 1);
 		this.y = -(this.h >> 1);
@@ -188,15 +114,9 @@ public class MapMode
 		// calculate coords display location
 		this.textX = 0;
 		this.textY = (this.h >> 1) + 4;
-
-		// MwUtil.log("MapMode: map = %d %d %d %d, screen = %d %d", this.x,
-		// this.y, this.w, this.h, this.sw, this.sh);
-		// MwUtil.log("MapMode: margins = left %d, right %d, top %d, bottom %d, size = %d",
-		// this.marginLeft, this.marginRight, this.marginTop, this.marginBottom,
-		// size);
 	}
 
-	public Point screenXYtoBlockXZ(MapView mapView, int sx, int sy)
+	public Point screenXYtoBlockXZ(IMapView mapView, int sx, int sy)
 	{
 		double withinMapX = ((double) (sx - this.xTranslation)) / ((double) this.w);
 		double withinMapY = ((double) (sy - this.yTranslation)) / ((double) this.h);
@@ -205,14 +125,14 @@ public class MapMode
 		return new Point(bx, bz);
 	}
 
-	public Point.Double blockXZtoScreenXY(MapView mapView, double bX, double bZ)
+	public Point.Double blockXZtoScreenXY(IMapView mapView, double bX, double bZ)
 	{
 		double xNorm = (bX - mapView.getX()) / mapView.getWidth();
 		double zNorm = (bZ - mapView.getZ()) / mapView.getHeight();
 		return new Point.Double(this.w * xNorm, this.h * zNorm);
 	}
 
-	public Point.Double getClampedScreenXY(MapView mapView, double bX, double bZ)
+	public Point.Double getClampedScreenXY(IMapView mapView, double bX, double bZ)
 	{
 		double xRel = (bX - mapView.getX()) / mapView.getWidth();
 		double zRel = (bZ - mapView.getZ()) / mapView.getHeight();
@@ -265,5 +185,112 @@ public class MapMode
 		// multiply by the overlay size and add the overlay position to
 		// get the position within the overlay in screen coordinates
 		return new Point.Double(this.w * xRel, this.h * zRel);
+	}
+
+	public boolean posWithin(int mouseX, int mouseY)
+	{
+		mouseXOffset = mouseX - this.xTranslation;
+		mouseYOffset = mouseY - this.yTranslation;
+		return this.isMouseYWithinSlotBounds(mouseY) && this.isMouseXWithinSlotBounds(mouseX);
+	}
+
+	private boolean isMouseYWithinSlotBounds(int mouseY)
+	{
+		return (mouseY >= this.yTranslation + this.y) && (mouseY <= this.yTranslation - this.y);
+	}
+
+	private boolean isMouseXWithinSlotBounds(int mouseX)
+	{
+		return (mouseX >= this.xTranslation + this.x) && (mouseX <= this.xTranslation - this.x);
+	}
+
+	public Point.Double getNewPosPoint(double mouseX, double mouseY)
+	{
+		int newX = (int) (mouseX - mouseXOffset);
+		int newY = (int) (mouseY - mouseYOffset);
+
+		if (newX + this.x < 0)
+		{
+			newX = -this.x;
+		}
+		if (newX - this.x > this.sw)
+		{
+			newX = this.sw - -this.x;
+		}
+
+		if (newY + this.y < 0)
+		{
+			newY = -this.y;
+		}
+		if (newY - this.y > this.sh)
+		{
+			newY = this.sh - -this.y;
+		}
+
+		double x = ((newX - (this.w / 2)) * 100.0) / (this.sw - this.w);
+		double y = ((newY - (this.h / 2)) * 100.0) / (this.sh - this.h);
+
+		Point.Double pos = new Point.Double(x, y);
+		return pos;
+	}
+
+	public int getXTranslation()
+	{
+		return this.xTranslation;
+	}
+
+	public int getYTranslation()
+	{
+		return this.yTranslation;
+	}
+
+	public int getX()
+	{
+		return this.x;
+	}
+
+	public int getY()
+	{
+		return this.y;
+	}
+
+	public int getW()
+	{
+		return this.w;
+	}
+
+	public int getH()
+	{
+		return this.h;
+	}
+
+	public int getWPixels()
+	{
+		return this.wPixels;
+	}
+
+	public int getHPixels()
+	{
+		return this.hPixels;
+	}
+
+	public MapModeConfig getConfig()
+	{
+		return this.config;
+	}
+
+	public int getTextX()
+	{
+		return this.textX;
+	}
+
+	public int getTextY()
+	{
+		return this.textY;
+	}
+
+	public int getTextColour()
+	{
+		return this.textColour;
 	}
 }
