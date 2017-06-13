@@ -6,6 +6,7 @@ import java.util.Arrays;
 import org.lwjgl.opengl.GL11;
 
 import mapwriter.Mw;
+import mapwriter.config.Config;
 import mapwriter.region.ChunkRender;
 import mapwriter.region.IChunk;
 import mapwriter.util.Texture;
@@ -117,12 +118,7 @@ public class UndergroundTexture extends Texture
 		for (int i = 0; i < this.pixels.length; i++)
 		{
 			int colour = this.pixels[i];
-			int height = (colour >> 24) & 0xff;
-			int alpha = (y >= height) ? 255 - ((y - height) * 8) : 0;
-			if (alpha < 0)
-			{
-				alpha = 0;
-			}
+ 			int alpha = 255;
 			this.pixelBufPut(((alpha << 24) & 0xff000000) | (colour & 0xffffff));
 		}
 		this.updateTexture();
@@ -167,8 +163,6 @@ public class UndergroundTexture extends Texture
 
 	public void update()
 	{
-		this.clearFlags();
-
 		if (this.dimension != this.mw.playerDimension)
 		{
 			this.clear();
@@ -177,19 +171,74 @@ public class UndergroundTexture extends Texture
 		this.px = this.mw.playerXInt;
 		this.py = this.mw.playerYInt;
 		this.pz = this.mw.playerZInt;
-
-		this.updateX = (this.px >> 4) - 1;
-		this.updateZ = (this.pz >> 4) - 1;
-
-		this.processBlock(this.px - (this.updateX << 4), this.py, this.pz - (this.updateZ << 4));
-
-		int cxMax = this.updateX + 2;
-		int czMax = this.updateZ + 2;
 		WorldClient world = this.mw.mc.world;
-		int flagOffset = 0;
-		for (int cz = this.updateZ; cz <= czMax; cz++)
+
+		
+		
+		int diameter = Config.undergroundRange;
+		int radius = (diameter - 1) / 2;
+
+		                                
+		this.updateX = (this.px >> 4) - radius;
+		this.updateZ = (this.pz >> 4) - radius;
+
+		int cxMax = this.updateX + diameter-1;
+		int czMax = this.updateZ + diameter-1;
+				
+		
+                int center = ((diameter-1) / 2);
+
+		if (center % 2 == 0)
+
 		{
-			for (int cx = this.updateX; cx <= cxMax; cx++)
+			center++;
+		}
+		int band = ((diameter-center)/2); 
+
+		int minX = this.updateX;
+		int maxX = cxMax;
+		int minZ = this.updateZ;
+		int maxZ = czMax;
+
+                if (diameter > 3)
+                {
+                        switch ((int) mw.tickCounter % 10)
+                        {
+			case 0:
+                        	maxX = minX + band - 1;
+				maxZ = minZ + diameter - band - 1;
+				break;
+			case 1:
+				minX = minX + band;
+				maxZ = minZ + band - 1;
+				break;
+			case 2:
+				minX = minX + diameter-band;
+				minZ = minZ + band;
+				break;
+			case 3:
+				maxX = minX + diameter-band-1;
+				maxZ = minZ + diameter-1;
+				minZ = minZ + diameter-band;
+				break;
+			case 4:
+				maxX = minX + diameter-band-1;
+				minX = minX + band;
+				maxZ = minZ + diameter-band-1;
+				minZ = minZ + band;
+				break;
+			default:
+				return;
+                        }
+                }
+		
+		
+//		Logging.logInfo("tick: %d, minX: %d, maxX: %d, minZ: %d, maxZ: %d, band: %d, center: %d, diameter: %d.",mw.tickCounter, minX, maxX, minZ, maxZ, band, center, diameter);
+		
+//		int flagOffset = 0;
+		for (int cz = minZ; cz <= maxZ; cz++)
+		{
+			for (int cx = minX; cx <= maxX; cx++)
 			{
 				if (this.isChunkInTexture(cx, cz))
 				{
@@ -197,17 +246,15 @@ public class UndergroundTexture extends Texture
 					int tx = (cx << 4) & (this.textureSize - 1);
 					int tz = (cz << 4) & (this.textureSize - 1);
 					int pixelOffset = (tz * this.textureSize) + tx;
-					byte[] mask = this.updateFlags[flagOffset];
 					ChunkRender.renderUnderground(
 							this.mw.blockColours,
 							new RenderChunk(chunk),
 							this.pixels,
 							pixelOffset,
 							this.textureSize,
-							this.py,
-							mask);
+							this.py);
 				}
-				flagOffset += 1;
+//				flagOffset += 1;
 			}
 		}
 
@@ -230,11 +277,11 @@ public class UndergroundTexture extends Texture
 		int xDist = this.px - x;
 		int zDist = this.pz - z;
 
-		if (((xDist * xDist) + (zDist * zDist)) <= 256)
+		if (((xDist * xDist) + (zDist * zDist)) <= 512)
 		{
 			if (this.isChunkInTexture(x >> 4, z >> 4))
 			{
-				int chunkOffset = ((zi >> 4) * 3) + (xi >> 4);
+				int chunkOffset = ((zi >> 4) * 5) + (xi >> 4);
 				int columnXi = xi & 0xf;
 				int columnZi = zi & 0xf;
 				int columnOffset = (columnZi << 4) + columnXi;

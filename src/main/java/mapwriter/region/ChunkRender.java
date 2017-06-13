@@ -221,56 +221,125 @@ public class ChunkRender
 		}
 	}
 
+
+	private static double checkBlockOpenAndVisible(BlockColours bc, IChunk chunk, int x, int y, int z)
+	{
+		int bcolor = 0;
+		int lvalue = 0;
+		double alpha = 0;
+		// todo: This doesn't work as intended.
+		// investigate why, address.
+                IBlockState blockState = chunk.getBlockState(x, y, z);
+		bcolor = bc.getColour(blockState);
+		alpha = (256-((bcolor >> 24) & 0xff)) / 256;
+		
+		if (bcolor == -8650628)
+		{
+			alpha = 1.0;
+		}
+
+		if (alpha < 0.1)
+		{
+			alpha = 0.1;
+		}
+                        			
+		if (chunk.getLightValue(x, y, z) > 0)
+		{
+			return alpha;
+		} else
+		{
+			return 0.0;
+		}
+	
+	}
+
 	public static void renderUnderground(BlockColours bc, IChunk chunk, int[] pixels, int offset,
-			int scanSize, int startY, byte[] mask)
+			int scanSize, int startY)
 	{
 		startY = Math.min(Math.max(0, startY), 255);
 		for (int z = 0; z < MwChunk.SIZE; z++)
 		{
 			for (int x = 0; x < MwChunk.SIZE; x++)
 			{
+				
+				int color = 0;
+				int red = 0;
+				int blue = 0;
+				int green = 180;
+				double voidbelow = 0;
+				double voidabove = 0;			
+				int lvalue = 0;
+				double alpha = 0;
 
-				// only process columns where the mask bit is set.
-				// process all columns if mask is null.
-				if ((mask != null) && ((mask[(z * 16) + x]) != FLAG_NON_OPAQUE))
+				int dist = 0;
+				for (int y = startY-1; y >= startY-15;y--)
 				{
-					continue;
-				}
-
-				// get the last non transparent block before the first opaque
-				// block searching
-				// towards the sky from startY
-				int lastNonTransparentY = startY;
-				for (int y = startY; y < chunk.getMaxY(); y++)
-				{
-					IBlockState blockState = chunk.getBlockState(x, y, z);
-					int color = bc.getColour(blockState);
-					int alpha = (color >> 24) & 0xff;
-
-					if (color == -8650628)
+					if (y >=0) 
 					{
-						alpha = 0;
+						alpha = checkBlockOpenAndVisible(bc, chunk, x, y, z);
+						if (alpha > 0)
+						{
+							green = green - (int) (11-dist);
+							red = red + (int) ((15-dist)*alpha);
+						}
 					}
-
-					if (alpha == 0xff)
+					if (dist < 10)
 					{
-						break;
-					}
-					if (alpha > 0)
-					{
-						lastNonTransparentY = y;
+						dist++;
 					}
 				}
 
+				dist = 0;
+				for (int y = startY + 2; y <= startY+16; y++)
+				{
+					if (y <= 255)
+					{
+						alpha = checkBlockOpenAndVisible(bc, chunk, x, y, z);
+						if (alpha > 0)
+						{
+							green = green - (int) (11-(dist));
+							blue = blue + (int) ((16-dist)*alpha);
+						}
+					
+					}
+					else
+					{
+					green = green - (int) (14-dist);
+					blue = blue + (int) (17-dist);
+					}
+					if (dist < 10)
+					{
+						dist++;
+					}
+				}
+				
+				if (checkBlockOpenAndVisible(bc, chunk, x, startY, z)>0)
+				{
+					green = green - 17;
+				}
+
+				if (checkBlockOpenAndVisible(bc, chunk, x, startY+1, z)>0)
+				{
+					green = green - 17;
+				}
+
+				if (red > 200)
+				{
+					red = 170;
+				}
+
+				if (green < 0)
+				{
+					green = 0;
+				}
+
+				if (blue > 200)
+				{
+					blue = 170;
+				}
+				color = red << 16 | green << 8 | blue;
 				int pixelOffset = offset + (z * scanSize) + x;
-				pixels[pixelOffset] = getColumnColour(
-						bc,
-						chunk,
-						x,
-						lastNonTransparentY,
-						z,
-						getPixelHeightW(pixels, pixelOffset, scanSize),
-						getPixelHeightN(pixels, pixelOffset, scanSize));
+				pixels[pixelOffset] = color;
 			}
 		}
 	}
